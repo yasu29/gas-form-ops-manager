@@ -1,0 +1,15 @@
+# clasp settings
+src/.clasp.json
+
+# local development file
+src/local_dev.js
+
+# notification engine files
+src/core_*
+
+# node modules
+node_modules/
+
+# OS noise
+.DS_Store
+Thumbs.db
