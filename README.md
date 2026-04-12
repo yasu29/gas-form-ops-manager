@@ -282,6 +282,28 @@ Google Drive
 
 ---
 
+# ⚠️ Environment Limitations
+
+本ツールは Google Apps Script および Google Drive API を利用しています。
+
+利用環境（特に企業の Google Workspace 環境）によっては、
+以下のような操作が制限される場合があります：
+
+* フォルダ作成（DriveApp.createFolder）
+* ファイル移動（file.moveTo）
+* ルートフォルダの取得（DriveApp.getRootFolder）
+* ファイル削除（file.setTrashed）
+
+これらの制限がある場合、
+**ファイル管理（Runフォルダ作成など）を含む一部機能が正常に動作しない可能性があります。**
+
+本ツールは以下の環境での利用を推奨します：
+
+* 個人のGoogleアカウント
+* または制限のないGoogle Workspace環境
+
+---
+
 # 📄 License
 
 MIT License
