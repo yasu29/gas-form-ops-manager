@@ -102,4 +102,28 @@ class FormOpsConfig {
 
     return value;
   }
+
+  // ==============================
+  // Environment
+  // ==============================
+  
+  /**
+   * 環境状態保存
+   */
+  static setEnvironmentState(state) {
+  
+    PropertiesService.getScriptProperties()
+      .setProperty('FORMOPS_ENV', JSON.stringify(state));
+  }
+  
+  /**
+   * 環境状態取得
+   */
+  static getEnvironmentState() {
+  
+    const value = PropertiesService.getScriptProperties()
+      .getProperty('FORMOPS_ENV');
+  
+    return value ? JSON.parse(value) : {};
+  }
 }

@@ -28,6 +28,15 @@ function formops_setupAll() {
    */
   Logger.log('START: setupAll');
 
+  /**
+   * 🔹 環境初期化（追加）
+   *
+   * 設計思想：
+   * - すべての処理の前に実行
+   * - 環境依存の分岐をここで確定させる
+   */
+  formops_initEnvironment();
+
   try {
 
     formops_setup();
@@ -193,4 +202,87 @@ function formops_setupFormSubmitTrigger(formId) {
     'Form submit trigger created',
     formId
   );
+}
+
+/**
+ * =========================================================
+ * 🔹 環境初期化（Environment Init）
+ * =========================================================
+ *
+ * ■ 目的
+ * ・実行環境の制約（Drive / Gmailなど）を事前に検知する
+ * ・結果をScriptPropertiesに保存し、後続処理で利用する
+ *
+ * ■ 設計思想
+ * ・環境チェックは「1回だけ実行」
+ * ・実行結果は「状態」として保持する
+ * ・Service層はこの状態を参照して分岐する
+ *
+ * ■ 実行タイミング
+ * ・formops_setupAll() の先頭で実行（推奨）
+ *
+ * =========================================================
+ */
+function formops_initEnvironment() {
+
+  /**
+   * 🔹 初期ログ（Logs未作成のためLogger使用）
+   */
+  Logger.log('START: initEnvironment');
+
+  try {
+
+    /**
+     * 🔹 環境チェック実行
+     *
+     * gas_util_envCheck.gs の関数を利用
+     */
+    const results = gasEnv_check();
+
+    /**
+     * 🔹 必要な項目のみ抽出
+     *
+     * 設計思想：
+     * - すべて保存しない（必要最小限）
+     * - Serviceで使うものだけ保持
+     */
+    const state = {
+
+      /**
+       * Drive利用可否
+       *
+       * 判定ロジック：
+       * - フォルダ作成が成功すればOK
+       */
+      driveAvailable: results.find(r =>
+        r.name === 'Drive.createFolder'
+      )?.status === 'OK'
+
+    };
+
+    /**
+     * 🔹 ScriptPropertiesへ保存
+     */
+    FormOpsConfig.setEnvironmentState(state);
+
+    /**
+     * 🔹 完了ログ
+     */
+    Logger.log('Environment initialized: ' + JSON.stringify(state));
+
+  } catch (e) {
+
+    /**
+     * 🔹 フォールバック（確実に残す）
+     */
+    Logger.log('Environment init failed: ' + e.message);
+
+    /**
+     * 🔥 重要：
+     * 環境初期化失敗は致命的ではないため throwしない
+     *
+     * 理由：
+     * - fallback（DriveService側）で吸収できる
+     */
+  }
 }

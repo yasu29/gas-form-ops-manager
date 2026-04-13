@@ -215,7 +215,12 @@ class FormOpsFormService {
      * - Driveの単一親モデルに準拠
      * - add/removeの組み合わせを廃止
      */
-    file.moveTo(folder);
+    if (!folder) {
+      FormOpsLogService.log('WARN', 'Skip move: folder is null');
+      return;
+    }
+    
+    FormOpsDriveService.moveFile(file, folder);
   }
 
   /**
@@ -365,13 +370,28 @@ class FormOpsFormService {
    */
   static createRunFolder(runId, title = '') {
   
+    /**
+     * 🔹 Drive利用不可ならスキップ
+     */
+    if (!FormOpsDriveService.isAvailable()) {
+      FormOpsLogService.log('WARN', 'Drive unavailable: skip run folder creation');
+      return null;
+    }
+  
     const rootName = FormOpsConfig.OUTPUT_FOLDER_NAME;
   
+    /**
+     * 🔹 フォルダ取得 or 作成
+     */
     const folders = DriveApp.getFoldersByName(rootName);
   
-    const root = folders.hasNext()
-      ? folders.next()
-      : DriveApp.createFolder(rootName);
+    let root;
+  
+    if (folders.hasNext()) {
+      root = folders.next();
+    } else {
+      root = DriveApp.createFolder(rootName);
+    }
   
     /**
      * 🔹 タイトル安全化
@@ -402,14 +422,22 @@ class FormOpsFormService {
   static moveToRootFolder(fileId) {
   
     /**
-     * 🔥 Drive反映待ち
+     * 🔹 Drive利用不可ならスキップ
+     */
+    if (!FormOpsDriveService.isAvailable()) {
+      FormOpsLogService.log('WARN', 'Drive unavailable: skip moveToRootFolder');
+      return;
+    }
+  
+    /**
+     * 🔹 Drive反映待ち
      */
     Utilities.sleep(500);
   
     const rootName = FormOpsConfig.OUTPUT_FOLDER_NAME;
   
     /**
-     * 🔹 ルートフォルダ取得 or 作成
+     * 🔹 フォルダ取得 or 作成
      */
     const folders = DriveApp.getFoldersByName(rootName);
   
@@ -421,11 +449,14 @@ class FormOpsFormService {
       root = DriveApp.createFolder(rootName);
     }
   
+    /**
+     * 🔹 ファイル取得
+     */
     const file = DriveApp.getFileById(fileId);
   
     /**
-     * 🔹 フォルダへ移動（推奨API）
+     * 🔹 移動（DriveService経由）
      */
-    file.moveTo(root);
+    FormOpsDriveService.moveFile(file, root);
   }
 }
