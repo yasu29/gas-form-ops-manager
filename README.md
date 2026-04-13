@@ -186,6 +186,7 @@ formops_setupAll()
 
   * FORMOPS_SPREADSHEET_ID
   * FORMOPS_ENV（環境状態）
+    ※ 実行環境はスクリプトにより自動判定されます（手動設定不要）
 
 ※ Script Properties は事前設定不要です
 
@@ -324,12 +325,16 @@ Google Drive（ルート直下）
 本ツールは Google Apps Script および Google Drive API を利用しています。
 
 利用環境（特に企業の Google Workspace 環境）によっては、
-以下の操作が制限される場合があります：
+Google Drive API（DriveApp）へのアクセス自体が制限される場合があります。
+
+以下の操作および取得処理が失敗する可能性があります：
 
 * フォルダ作成（DriveApp.createFolder）
 * ファイル移動（file.moveTo）
 * ルートフォルダの取得（DriveApp.getRootFolder）
 * ファイル削除（file.setTrashed）
+* ファイル取得（DriveApp.getFileById）
+* フォルダ検索（DriveApp.getFoldersByName）
 
 ---
 
