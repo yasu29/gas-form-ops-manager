@@ -501,10 +501,16 @@ function formops_prepareMasterSpreadsheet() {
 
   const props = PropertiesService.getScriptProperties();
 
+  /**
+   * 🔹 Master作成（必ずルートに生成される）
+   */
   const ss = SpreadsheetApp.create('FormOps_Master');
 
   /**
-   * 🔥 追加（超重要）
+   * 🔥 Drive反映待ち（重要）
+   *
+   * 理由：
+   * - 作成直後はDrive APIで取得できないことがある
    */
   Utilities.sleep(1000);
 
@@ -515,16 +521,71 @@ function formops_prepareMasterSpreadsheet() {
 
   const ssId = ss.getId();
 
+  /**
+   * 🔹 ScriptProperties保存
+   */
   props.setProperty('FORMOPS_SPREADSHEET_ID', ssId);
 
   /**
-   * 🔹 ルートフォルダへ移動
+   * 🔹 配置制御（環境依存）
    *
    * 設計思想：
-   * - Masterは常設ファイル
-   * - run配下には置かない
+   * - Drive利用可 → FormOps_Output配下へ整理
+   * - Drive制限あり → ルート直下のまま
    */
-  FormOpsFormService.moveToRootFolder(ssId);
+  if (FormOpsDriveService.isAvailable()) {
+
+    try {
+
+      const rootName = FormOpsConfig.OUTPUT_FOLDER_NAME;
+
+      /**
+       * 🔹 Outputフォルダ取得 or 作成
+       */
+      const folders = DriveApp.getFoldersByName(rootName);
+
+      const rootFolder = folders.hasNext()
+        ? folders.next()
+        : FormOpsDriveService.createFolder(rootName);
+
+      if (rootFolder) {
+
+        /**
+         * 🔹 MasterをOutput配下へ移動
+         */
+        const file = DriveApp.getFileById(ssId);
+
+        FormOpsDriveService.moveFile(file, rootFolder);
+
+        FormOpsLogService.log(
+          'INFO',
+          'Master moved to output folder',
+          rootName
+        );
+      }
+
+    } catch (e) {
+
+      /**
+       * 🔸 フォールバック（ルート維持）
+       */
+      FormOpsLogService.log(
+        'WARN',
+        'Master move failed (fallback to root)',
+        e.message
+      );
+    }
+
+  } else {
+
+    /**
+     * 🔹 制限環境（Workspace等）
+     */
+    FormOpsLogService.log(
+      'INFO',
+      'Drive restricted: Master stays in root'
+    );
+  }
 
   return ss;
 }

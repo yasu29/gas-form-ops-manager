@@ -228,41 +228,41 @@ class FormOpsFormService {
    */
   static getTokenEntryId() {
 
-  const formId = FormOpsConfig.FORM_ID;
-
-  if (!formId) {
-    throw new Error('FORM_ID is not set');
-  }
-
-  const form = FormApp.openById(formId);
-
-  const textItems = form.getItems(FormApp.ItemType.TEXT);
-
-  const tokenItem = textItems.find(item =>
-    item.getTitle().trim().toLowerCase() === 'token'
-  );
-
-  if (!tokenItem) {
-    throw new Error('Token field not found');
-  }
-
-  const response = form.createResponse();
-
-  const itemResponse = tokenItem
-    .asTextItem()
-    .createResponse('DUMMY_TOKEN');
-
-  response.withItemResponse(itemResponse);
-
-  const url = response.toPrefilledUrl();
-
-  const match = url.match(/(entry\.\d+)=/);
-
-  if (!match) {
-    throw new Error('Failed to extract entryId');
-  }
-
-  return match[1];
+    const formId = FormOpsConfig.FORM_ID;
+  
+    if (!formId) {
+      throw new Error('FORM_ID is not set');
+    }
+  
+    const form = FormApp.openById(formId);
+  
+    const textItems = form.getItems(FormApp.ItemType.TEXT);
+  
+    const tokenItem = textItems.find(item =>
+      item.getTitle().trim().toLowerCase() === 'token'
+    );
+  
+    if (!tokenItem) {
+      throw new Error('Token field not found');
+    }
+  
+    const response = form.createResponse();
+  
+    const itemResponse = tokenItem
+      .asTextItem()
+      .createResponse('DUMMY_TOKEN');
+  
+    response.withItemResponse(itemResponse);
+  
+    const url = response.toPrefilledUrl();
+  
+    const match = url.match(/(entry\.\d+)=/);
+  
+    if (!match) {
+      throw new Error('Failed to extract entryId');
+    }
+  
+    return match[1];
   }
 
   /**
@@ -380,19 +380,23 @@ class FormOpsFormService {
   
     const rootName = FormOpsConfig.OUTPUT_FOLDER_NAME;
   
-    /**
-     * 🔹 フォルダ取得 or 作成
-     */
-    const folders = DriveApp.getFoldersByName(rootName);
+    let root = null;
   
-    let root;
+    try {
   
-    if (folders.hasNext()) {
-      root = folders.next();
-    } else {
-      root = DriveApp.createFolder(rootName);
+      /**
+       * 🔹 フォルダ取得 or 作成
+       */
+      const folders = DriveApp.getFoldersByName(rootName);
+
+      root = folders.hasNext()
+        ? folders.next()
+        : FormOpsDriveService.createFolder(rootName);
+    } catch (e) {
+      FormOpsLogService.log('WARN', 'Drive access failed', e.message);
+      return null;
     }
-  
+
     /**
      * 🔹 タイトル安全化
      */
@@ -406,8 +410,13 @@ class FormOpsFormService {
     const folderName = safeTitle
       ? `run_${runId}_${safeTitle}`
       : `run_${runId}`;
-  
-    return root.createFolder(folderName);
+
+    try {
+      return root ? root.createFolder(folderName) : null;
+    } catch (e) {
+      FormOpsLogService.log('WARN', 'Run folder creation failed', e.message);
+      return null;
+    }  
   }
 
   /**
@@ -433,30 +442,26 @@ class FormOpsFormService {
      * 🔹 Drive反映待ち
      */
     Utilities.sleep(500);
+
+    const root = FormOpsDriveService.getRootFolder();
   
-    const rootName = FormOpsConfig.OUTPUT_FOLDER_NAME;
-  
-    /**
-     * 🔹 フォルダ取得 or 作成
-     */
-    const folders = DriveApp.getFoldersByName(rootName);
-  
-    let root;
-  
-    if (folders.hasNext()) {
-      root = folders.next();
-    } else {
-      root = DriveApp.createFolder(rootName);
+    if (!root) {
+      FormOpsLogService.log('WARN', 'Root folder not available');
+      return;
     }
   
-    /**
-     * 🔹 ファイル取得
-     */
-    const file = DriveApp.getFileById(fileId);
+    try {
+      /**
+       * 🔹 ファイル取得
+       */
+      const file = DriveApp.getFileById(fileId);
   
-    /**
-     * 🔹 移動（DriveService経由）
-     */
-    FormOpsDriveService.moveFile(file, root);
+      /**
+       * 🔹 移動（DriveService経由）
+       */
+      FormOpsDriveService.moveFile(file, root);
+    } catch (e) {
+      FormOpsLogService.log('WARN', 'moveToRootFolder failed', e.message);
+    }
   }
 }
