@@ -537,30 +537,24 @@ function formops_prepareMasterSpreadsheet() {
 
     try {
 
-      const rootName = FormOpsConfig.OUTPUT_FOLDER_NAME;
-
       /**
-       * 🔹 Outputフォルダ取得 or 作成
+       * 🔹 Outputフォルダ取得 or 作成（DriveService経由）
        */
-      const folders = DriveApp.getFoldersByName(rootName);
-
-      const rootFolder = folders.hasNext()
-        ? folders.next()
-        : FormOpsDriveService.createFolder(rootName);
+      const rootFolder = FormOpsDriveService.getOrCreateFolder(
+        FormOpsConfig.OUTPUT_FOLDER_NAME
+      );
 
       if (rootFolder) {
 
         /**
-         * 🔹 MasterをOutput配下へ移動
+         * 🔹 MasterをOutput配下へ移動（完全抽象化）
          */
-        const file = DriveApp.getFileById(ssId);
-
-        FormOpsDriveService.moveFile(file, rootFolder);
+        FormOpsDriveService.moveFileById(ssId, rootFolder);
 
         FormOpsLogService.log(
           'INFO',
           'Master moved to output folder',
-          rootName
+          FormOpsConfig.OUTPUT_FOLDER_NAME
         );
       }
 

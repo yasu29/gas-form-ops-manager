@@ -202,11 +202,25 @@ class FormOpsFormService {
   static moveToFolder(fileId, folder) {
   
     /**
+     * 🔹 Drive利用不可ならスキップ
+     */
+    if (!FormOpsDriveService.isAvailable()) {
+      FormOpsLogService.log('WARN', 'Drive unavailable: skip moveToFolder');
+      return;
+    }
+  
+    /**
+     * 🔹 folder未指定ならスキップ
+     */
+    if (!folder) {
+      FormOpsLogService.log('WARN', 'Skip move: folder is null');
+      return;
+    }
+
+    /**
      * 🔥 Drive反映待ち（重要）
      */
     Utilities.sleep(500);
-  
-    const file = DriveApp.getFileById(fileId);
   
     /**
      * 🔹 フォルダへ移動（推奨API）
@@ -215,12 +229,21 @@ class FormOpsFormService {
      * - Driveの単一親モデルに準拠
      * - add/removeの組み合わせを廃止
      */
-    if (!folder) {
-      FormOpsLogService.log('WARN', 'Skip move: folder is null');
-      return;
+    try {
+  
+      /**
+       * 🔹 DriveServiceに完全委譲
+       */
+      FormOpsDriveService.moveFileById(fileId, folder);
+  
+    } catch (e) {
+  
+      FormOpsLogService.log(
+        'WARN',
+        'moveToFolder failed',
+        e.message
+      );
     }
-    
-    FormOpsDriveService.moveFile(file, folder);
   }
 
   /**
@@ -385,13 +408,10 @@ class FormOpsFormService {
     try {
   
       /**
-       * 🔹 フォルダ取得 or 作成
+       * 🔥 DriveServiceのみ使用（直接禁止）
        */
-      const folders = DriveApp.getFoldersByName(rootName);
-
-      root = folders.hasNext()
-        ? folders.next()
-        : FormOpsDriveService.createFolder(rootName);
+      root = FormOpsDriveService.getOrCreateFolder(rootName);
+  
     } catch (e) {
       FormOpsLogService.log('WARN', 'Drive access failed', e.message);
       return null;
@@ -451,15 +471,12 @@ class FormOpsFormService {
     }
   
     try {
+
       /**
-       * 🔹 ファイル取得
+       * 🔹 ID指定で完全委譲
        */
-      const file = DriveApp.getFileById(fileId);
-  
-      /**
-       * 🔹 移動（DriveService経由）
-       */
-      FormOpsDriveService.moveFile(file, root);
+      FormOpsDriveService.moveFileById(fileId, root);
+
     } catch (e) {
       FormOpsLogService.log('WARN', 'moveToRootFolder failed', e.message);
     }
